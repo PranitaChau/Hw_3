@@ -1,0 +1,285 @@
+---
+title: "Hw_3"
+author: "Pranita"
+date: '`r Sys.Date()`'
+output: pdf_document
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+
+#importing all libraries & datasets
+library(ggplot2)
+library(tidyverse)
+library(mosaic)
+gas <- read_csv("gasprices.csv")
+cars <- read_csv("sclass.csv")
+nbc <- read_csv("nbc_pilotsurvey.csv")
+ebay <- read_csv("ebay.csv")
+
+```
+Name: Pranita Chaudhury
+
+UT EID: pc28377
+
+Github: https://github.com/PranitaChau/Hw_3.git 
+
+# to do later- make graphs look pretty, fix 1b 3c, write up all conclusions for ALL
+
+# Problem 1
+
+
+## Theory A
+The first theory is that gas stations charge more if they lack direct competition in sight. 
+
+
+
+```{r}
+
+
+comp_gas = do(10000)*diffmean(Price ~ Competitors, data = resample(gas))
+
+ggplot(comp_gas) + 
+  geom_histogram(aes(x=diffmean))
+confint(comp_gas, level=0.95)
+
+
+```
+
+The claim is gas stations that lack direct competition in sight charge higher prices for gas compared to those that are located with competitors in sight. We can collect evidence for this claim by comparing the mean price for gas stations with and without competitors in sight. Using a 95% confidence interval, there is a -0.054 to 0.008 difference in prices. Since 0 is included in this interval, it should be noted that there is no significant difference in prices for gas stations that do and do not have competitors nearby. Therefore the claim that gas stations with competitors in sight cannot be supported with our data using a 95% confidence interval.
+
+## Theory B
+The richer the area, the higher the gas price
+
+```{r}
+#for graph 
+ggplot(gas) + 
+  geom_point(aes(x=Price, y=Income))
+
+
+lm_price_income = lm(Price ~ Income, data=gas)
+coef(lm_price_income)
+
+
+boot_price_income = do(100)*lm(Price ~ Income, data=mosaic::resample(gas))
+confint(boot_price_income, level = 0.95)
+sd(~Price, data=gas)
+```
+The claim is that the higher the median income of an area, the price of gas will be more expensive. Evidence can be collected for this by comparing the median income of an area to the price of gas in said area. By plotting the graph there is a slight positive correlation visible, but it is not obvious so we can try to fit a linear model comparing the gas prices and income of the area. The coefficient for income shows a very small positive correlation, suggesting there is a weak correlation between gas prices of 1.248e-6. 
+
+
+## Theory C
+Gas stations at stoplights charge more
+
+```{r}
+
+
+stop_light_price = do(10000)*diffmean(Price ~ Stoplight, data = resample(gas))
+
+ggplot(stop_light_price) + 
+  geom_histogram(aes(x=diffmean))
+
+confint(stop_light_price, level=0.95)
+
+
+```
+
+## Theory D
+
+Gas stations with direct highway access charge more
+
+```{r}
+
+
+highway_price <- do(10000) * diffmean(Price ~ Highway, data = resample(gas))
+ggplot(highway_price) + geom_histogram(aes(x=diffmean))
+
+confint(highway_price, level=0.95)
+
+
+```
+
+
+The claim is that gas stations with direct highway access tend to charge more than gas stations further away from the highway. Evidence can be gathered for this by using a 95% confidence interval to compare gas prices for gas stations with and without direct highway access. The result of that procedure shows that there is between a 0.009 and 0.081 price difference between gas stations with and without direct highway access. Therefore, we can conclude with a 95% confidence interval that gas stations with direct highway access do tend to charge somwhere between $0.009 and $0.081 more than gas stations without direct highway access.
+
+## Theory E
+
+Shell charges mroe than all other non-Shell brands 
+
+```{r}
+
+gas = gas |>
+  mutate(BrandCategory = ifelse(gas$Brand == "Shell", "Shell", "Other"))
+
+shell_compare <- do(10000) * mean(~Price, data = resample(gas))
+ggplot(shell_compare) + geom_histogram(aes(x=mean))
+
+confint(shell_compare, level=0.95)
+
+
+```
+The claim is the brand Shell charges more than other brands of gas. This can be tested through comparing the mean prices of the price of gas that Shell charges to all other gas brands. Using a 95% confidence interval it can be determined that there is a 1.85 to 1.88 difference in prices. Therefore, we can conclude that on average the difference in prices between gas from Shell compared to other gas brands is somewhere between $1.85 and $1.88 with 95% confidence, and the claim is supported.
+
+
+
+# Problem 2
+
+## Part A
+
+```{r}
+
+sorted_cars <- cars |>
+  filter(year == "2011", trim == "63 AMG")
+
+avg_mileage <- do(10000) * mean(~mileage, data = resample(sorted_cars))
+ggplot(avg_mileage) + geom_histogram(aes(x=mean), fill = "lightblue", color = "navy") + labs(title = "Sampling distribution for 63 AMG Mercedes mileages in 2011", x = "Mileage (miles)", y = "Number of cars")
+
+confint(avg_mileage, level=0.95)
+
+
+
+```
+
+We are looking at used Mercedes S-Class vehicles sold on cars.com with a trim of 63 AMG in the year 2011. The graph shows the distribution of their mileage. Based on this data we can say with 95% confidence that the average mileage of cars that fit in this category is somewhere between 26293.74 and 31777.48 miles.
+
+
+## Part B
+
+
+```{r}
+
+new_sorted_cars <- cars |>
+  filter(year == "2014", trim == "550") |>
+  mutate(isBlack = ifelse(color == "Black", yes = TRUE, no = FALSE))
+
+
+black_prop <- do(10000) * prop(~isBlack, data = resample(new_sorted_cars))
+ggplot(black_prop) + geom_histogram(aes(x=prop_TRUE), fill = "grey", color = "navy") + labs(title = "Sampling distribution for 550 trim Black Mercedes in 2014", x = "Proportion that are black", y = "Number of cars")
+
+confint(black_prop, level=0.95)
+
+
+
+```
+
+We are looking at used Mercedes S-Class vehicles sold on cars.com with a trim of 550 in the year 2014. The graph shows the distribution of the proportion of cars colored black. Based on this data we can say with 95% confidence that the average proportion of black cars that fit in this category is somewhere between 0.4164 and 0.4531.
+
+
+
+# Problem 3
+
+## Part A
+
+```{r}
+
+earl <- nbc |>
+  filter(Show == "My Name is Earl") |>
+  select(Show, Q1_Happy)
+
+
+ed <- nbc |>
+  filter(Show == "Living with Ed") |>
+  select(Show, Q1_Happy)
+
+the_diff <- do(1000) * (mean(resample(earl$Q1_Happy)) - mean(resample(ed$Q1_Happy)))
+
+confint(the_diff, level=0.95)
+
+
+```
+I am answering the question of which show makes people happier: Living with Ed or My Name is Earl? In order to answer this question I used the bootstrapping method. I made a data set only containing the answers 
+
+
+
+
+## Part B
+
+```{r}
+
+loser <- nbc |>
+  filter(Show == "The Biggest Loser") |>
+  select(Show, Q1_Annoyed)
+
+
+LA <- nbc |>
+  filter(Show == "The Apprentice: Los Angeles") |>
+  select(Show, Q1_Annoyed)
+
+the_diff <- do(1000) * (mean(resample(earl$Q1_Happy)) - mean(resample(ed$Q1_Happy)))
+
+confint(the_diff, level=0.95)
+
+
+```
+
+No
+
+
+## Part C
+
+```{r}
+
+dancing_stars <- nbc |>
+  filter(Show == "Dancing with the Stars") |>
+  select(Show, Q2_Confusing) |>
+  mutate(isConfused = ifelse(Q2_Confusing == c("4", "5"), yes = TRUE, no = FALSE))
+
+
+confused_prop <- do(10000) * prop(~isConfused, data = resample(dancing_stars))
+ggplot(confused_prop) + geom_histogram(aes(x=prop_TRUE))
+
+
+confint(confused_prop, level=0.95)
+
+
+```
+
+
+
+idk if this is right, the #'s are not changing when re sampling
+
+# Problem 4
+
+```{r}
+
+ebay <- ebay |>
+  mutate(revenue_ratio = rev_after/rev_before)
+
+
+control <- ebay |>
+  filter(adwords_pause == "0")
+
+treatment <- ebay |>
+  filter(adwords_pause == "1") 
+
+
+rev_change <- do(10000) * (mean(resample(treatment$revenue_ratio)) - mean(resample(control$revenue_ratio)))
+
+confint(rev_change, level=0.95)
+
+
+```
+The quesiton I am trying to answer is whether the revenue
+ratio is the same in the treatment and control groups, or whether instead the data favors the idea that paid
+search advertising on Google creates extra revenue for EBay
+
+
+Question: What question are you trying to answer?
+2) Approach: What approach/statistical tool did you use to answer the question?
+3) Results: What evidence/results did your approach provide to answer the question? (E.g. any numbers,
+tables, figures as appropriate.)
+4) Conclusion: What is your conclusion about your question? Provide a written interpretation of your
+results, understandable to stakeholders who might plausibly take an interest in this data set.
+It is certainly possibly in this case for each of these four sections to be only
+
+
+
+
+
+
+
+
